@@ -1,0 +1,12 @@
+[
+  {
+    "document_id": "doc_001",
+    "profile_id": "profile_doc_001",
+    "piis_detected": [
+      "email",
+      "phone",
+      "name"
+    ],
+    "profile_completion_pct": 37.5
+  }
+]
