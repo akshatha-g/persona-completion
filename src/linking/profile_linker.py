@@ -76,15 +76,35 @@ class ProfileLinker:
         
         document_groups = []  # Will be populated by LLM grouping in future
         
+        # Calculate metrics
+        total_documents = len(profiles)
+        total_profiles = len(merged_profiles)
+        
+        # Phase 1 metrics
+        phase1_linked = [p for p in merged_profiles if len(p.linked_document_ids) > 1]
+        phase1_linked_profiles = len(phase1_linked)
+        phase1_docs_merged = sum(len(p.linked_document_ids) for p in phase1_linked)
+        
+        # Phase 2 metrics (placeholder - currently 0, will be populated when LLM is added)
+        phase2_linked_profiles = 0
+        phase2_docs_merged = 0
+        
+        # Unlinked = singletons
+        unlinked_profiles = sum(1 for p in merged_profiles if len(p.linked_document_ids) == 1)
+        
         # Build result
         result = LinkingResult(
             identified_profiles=identified_map,
             enrichments=enrichments,
             document_nodes=document_nodes,
             document_groups=document_groups,
-            total_documents=len(profiles),
-            identified_count=sum(1 for n in document_nodes.values() 
-                               if n.status == IdentificationStatus.IDENTIFIED),
+            total_documents=total_documents,
+            total_profiles=total_profiles,
+            phase1_linked_profiles=phase1_linked_profiles,
+            phase1_docs_merged=phase1_docs_merged,
+            phase2_linked_profiles=phase2_linked_profiles,
+            phase2_docs_merged=phase2_docs_merged,
+            unlinked_profiles=unlinked_profiles,
         )
         
         return merged_profiles, result

@@ -26,10 +26,29 @@ def main():
     linked_profiles, linking_result = linker.link_profiles(profiles)
     
     # Display linking summary
-    print("\n=== LINKING SUMMARY ===")
-    print(f"  Profiles with enrichments: {len(linking_result.enrichments)}")
-    for profile_id, new_piis in linking_result.enrichments.items():
-        print(f"    {profile_id}: +{list(new_piis.keys())}")
+    print("\n" + "="*50)
+    print("LINKING SUMMARY")
+    print("="*50)
+    print(f"Total Documents:                    {linking_result.total_documents}")
+    print(f"Total Profiles (after linking):     {linking_result.total_profiles}")
+    print("-"*50)
+    print(f"Phase 1 - Strong ID Linking:")
+    print(f"  Linked profiles:                  {linking_result.phase1_linked_profiles}")
+    print(f"  Documents merged:                 {linking_result.phase1_docs_merged}")
+    print("-"*50)
+    print(f"Phase 2 - LLM Contextual Linking:")
+    print(f"  Linked profiles:                  {linking_result.phase2_linked_profiles}")
+    print(f"  Documents merged:                 {linking_result.phase2_docs_merged}")
+    print("-"*50)
+    print(f"Unlinked Profiles (singletons):     {linking_result.unlinked_profiles}")
+    print("="*50)
+    
+    if linking_result.enrichments:
+        print(f"\nEnrichments from linking ({len(linking_result.enrichments)} profiles):")
+        for profile_id, new_piis in list(linking_result.enrichments.items())[:10]:
+            print(f"  {profile_id}: +{list(new_piis.keys())}")
+        if len(linking_result.enrichments) > 10:
+            print(f"  ... and {len(linking_result.enrichments) - 10} more")
     
     # Step 4: Re-visualize profile completeness (after linking)
     print("\n=== AFTER LINKING ===")

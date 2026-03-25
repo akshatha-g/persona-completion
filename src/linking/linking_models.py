@@ -60,9 +60,17 @@ class LinkingResult:
     document_nodes: Dict[str, DocumentNode]  # doc_id -> DocumentNode
     document_groups: List[DocumentGroup]
     
-    # Summary stats
+    # Clear metrics
     total_documents: int = 0
-    identified_count: int = 0
-    likely_count: int = 0
-    candidate_count: int = 0
-    ambiguous_count: int = 0
+    total_profiles: int = 0
+    
+    # Phase 1: Strong ID linking
+    phase1_linked_profiles: int = 0  # Profiles with >1 doc linked via strong IDs
+    phase1_docs_merged: int = 0  # Total docs merged in Phase 1
+    
+    # Phase 2: LLM contextual linking
+    phase2_linked_profiles: int = 0  # Profiles linked via contextual analysis
+    phase2_docs_merged: int = 0  # Total docs merged in Phase 2
+    
+    # Unlinked
+    unlinked_profiles: int = 0  # Singleton profiles (1 doc each)
