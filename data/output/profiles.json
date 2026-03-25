@@ -3,10 +3,10 @@
     "document_id": "doc_001",
     "profile_id": "profile_doc_001",
     "piis_detected": [
+      "name",
       "email",
-      "phone",
-      "name"
+      "phone"
     ],
-    "profile_completion_pct": 37.5
+    "profile_completion_pct": 100.0
   }
 ]

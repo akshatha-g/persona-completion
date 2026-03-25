@@ -4,28 +4,17 @@ Step 1: Process documents with PII span data and generate profile database.
 
 import json
 import os
-from typing import List
+from typing import List, Dict, Set
 from .models import Document, Profile, PIISpan
-
-
-# Define which PII types contribute to a "complete" profile
-PROFILE_PII_TYPES = [
-    "name",
-    "email", 
-    "phone",
-    "address",
-    "ssn",
-    "date_of_birth",
-    "employer",
-    "occupation"
-]
+from .persona_config import PERSONA_TRAIT_SETS, PII_TYPE_ALIASES
 
 
 class PIIProcessor:
     """Processes documents with PII detections and generates profiles."""
     
-    def __init__(self, pii_types: List[str] = None):
-        self.pii_types = pii_types or PROFILE_PII_TYPES
+    def __init__(self, trait_sets: List[Dict] = None):
+        self.trait_sets = trait_sets or PERSONA_TRAIT_SETS
+        self.aliases = PII_TYPE_ALIASES
     
     def process_documents(self, input_dir: str) -> List[Profile]:
         """
@@ -80,12 +69,38 @@ class PIIProcessor:
         return [profile]
     
     def _calculate_completion(self, detected_piis: List[str]) -> float:
-        """Calculate profile completion as percentage of expected PII types."""
-        if not self.pii_types:
+        """
+        Calculate profile completion as max percentage across all trait sets.
+        
+        For each trait set, calculates what % of required traits are present.
+        Returns the maximum percentage across all trait sets.
+        
+        Example:
+            - If you have "name" -> matches set 1 (50%), set 5 (33%) -> returns 50%
+            - If you have "social_media_handle" -> matches set 3 (100%) -> returns 100%
+        """
+        if not detected_piis:
             return 0.0
         
-        matched = sum(1 for pii in detected_piis if pii in self.pii_types)
-        return round((matched / len(self.pii_types)) * 100, 2)
+        # Normalize detected PIIs using aliases
+        normalized_piis: Set[str] = set()
+        for pii in detected_piis:
+            canonical = self.aliases.get(pii.lower(), pii.lower())
+            normalized_piis.add(canonical)
+        
+        # Calculate completion for each trait set
+        max_completion = 0.0
+        
+        for trait_set in self.trait_sets:
+            traits = trait_set["traits"]
+            if not traits:
+                continue
+            
+            matched = sum(1 for trait in traits if trait in normalized_piis)
+            completion = (matched / len(traits)) * 100
+            max_completion = max(max_completion, completion)
+        
+        return round(max_completion, 2)
     
     def save_profiles(self, profiles: List[Profile], output_path: str):
         """Save profiles to JSON file."""
