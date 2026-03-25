@@ -6,7 +6,8 @@ Two-phase approach:
 2. Contextual: Use LLM to find matches based on accumulated weak identifiers
 """
 
-from typing import List, Dict, Set, Tuple
+import os
+from typing import List, Dict, Set, Tuple, Optional
 from collections import defaultdict
 from src.extraction.models import Profile
 from src.linking.linking_config import STRONG_IDENTIFIERS, WEAK_IDENTIFIERS, IDENTIFICATION_THRESHOLD
@@ -19,10 +20,13 @@ from src.linking.linking_models import (
 class ProfileLinker:
     """Links profiles across documents using two-phase linking."""
     
-    def __init__(self):
+    def __init__(self, use_llm: bool = True, llm_model: str = "gpt-4o-mini"):
         # Normalize strong ID keys to lowercase for matching
         self.strong_ids = {k.lower().replace("'s", "").replace(" ", "_"): v 
                           for k, v in STRONG_IDENTIFIERS.items()}
+        self.use_llm = use_llm and os.getenv("OPENAI_API_KEY") is not None
+        self.llm_model = llm_model
+        self._llm_client = None
         # Also add common aliases
         self.strong_id_aliases = {
             "email": "email_address",
@@ -33,6 +37,14 @@ class ProfileLinker:
             "social_media_handle": "social_media_handles",
         }
         self.weak_ids = WEAK_IDENTIFIERS
+    
+    @property
+    def llm_client(self):
+        """Lazy initialization of LLM client."""
+        if self._llm_client is None and self.use_llm:
+            from src.linking.llm_client import LLMClient
+            self._llm_client = LLMClient(model=self.llm_model)
+        return self._llm_client
     
     def link_profiles(self, profiles: List[Profile]) -> Tuple[List[Profile], LinkingResult]:
         """
@@ -60,34 +72,42 @@ class ProfileLinker:
         print(f"  Found {len(profile_groups)} profile groups from {len(profiles)} profiles")
         print(f"  Merged into {len(merged_profiles)} distinct profiles")
         
-        # Build document nodes for Phase 2
-        document_nodes = self._build_document_nodes(merged_profiles, identified_map)
-        
-        # Phase 2: Contextual matching using weak identifiers
-        print("\n=== Phase 2: Contextual Matching ===")
-        unidentified_docs = [doc_id for doc_id, node in document_nodes.items() 
-                           if node.status != IdentificationStatus.IDENTIFIED]
-        
-        if unidentified_docs:
-            document_nodes = self._contextual_matching(document_nodes, merged_profiles)
-            print(f"  Processed {len(unidentified_docs)} unidentified documents")
-        else:
-            print("  All documents already identified via strong IDs")
-        
-        document_groups = []  # Will be populated by LLM grouping in future
-        
-        # Calculate metrics
-        total_documents = len(profiles)
-        total_profiles = len(merged_profiles)
-        
-        # Phase 1 metrics
+        # Track Phase 1 metrics before Phase 2
         phase1_linked = [p for p in merged_profiles if len(p.linked_document_ids) > 1]
         phase1_linked_profiles = len(phase1_linked)
         phase1_docs_merged = sum(len(p.linked_document_ids) for p in phase1_linked)
         
-        # Phase 2 metrics (placeholder - currently 0, will be populated when LLM is added)
+        # Build document nodes for Phase 2
+        document_nodes = self._build_document_nodes(merged_profiles, identified_map)
+        
+        # Phase 2: LLM Contextual matching
+        print("\n=== Phase 2: LLM Contextual Matching ===")
+        unidentified_docs = [doc_id for doc_id, node in document_nodes.items() 
+                           if node.status != IdentificationStatus.IDENTIFIED]
+        
         phase2_linked_profiles = 0
         phase2_docs_merged = 0
+        document_groups = []
+        
+        if unidentified_docs and self.use_llm:
+            print(f"  Analyzing {len(unidentified_docs)} unidentified documents...")
+            merged_profiles, document_groups, phase2_linked, phase2_merged, new_enrichments = (
+                self._llm_contextual_matching(merged_profiles, unidentified_docs, document_nodes)
+            )
+            phase2_linked_profiles = phase2_linked
+            phase2_docs_merged = phase2_merged
+            enrichments.update(new_enrichments)
+            print(f"  LLM linked {phase2_linked_profiles} profile groups ({phase2_docs_merged} docs)")
+        elif unidentified_docs:
+            print(f"  {len(unidentified_docs)} unidentified docs (LLM disabled - set OPENAI_API_KEY)")
+            # Fall back to heuristic matching
+            document_nodes = self._heuristic_matching(document_nodes, merged_profiles)
+        else:
+            print("  All documents already identified via strong IDs")
+        
+        # Calculate final metrics
+        total_documents = len(profiles)
+        total_profiles = len(merged_profiles)
         
         # Unlinked = singletons
         unlinked_profiles = sum(1 for p in merged_profiles if len(p.linked_document_ids) == 1)
@@ -265,13 +285,208 @@ class ProfileLinker:
                 return True
         return False
     
-    def _contextual_matching(
+    def _llm_contextual_matching(
+        self,
+        profiles: List[Profile],
+        unidentified_doc_ids: List[str],
+        document_nodes: Dict[str, DocumentNode]
+    ) -> Tuple[List[Profile], List[DocumentGroup], int, int, Dict[str, Dict[str, str]]]:
+        """
+        Phase 2: Use LLM to find matches among unidentified documents.
+        
+        Returns:
+            Tuple of (updated profiles, document groups, linked count, docs merged, enrichments)
+        """
+        from src.linking.llm_client import LLMClient
+        
+        # Build index of unidentified docs by their PII values
+        unid_profiles = {p.profile_id: p for p in profiles 
+                        if p.profile_id in unidentified_doc_ids}
+        
+        # Find candidate pairs based on weak identifier overlap
+        candidate_pairs = self._find_candidate_pairs(unid_profiles)
+        print(f"  Found {len(candidate_pairs)} candidate pairs to analyze")
+        
+        if not candidate_pairs:
+            return profiles, [], 0, 0, {}
+        
+        # Use LLM to analyze pairs
+        llm = self.llm_client
+        matched_pairs = []
+        
+        # Limit to avoid too many API calls (configurable)
+        max_pairs = int(os.getenv("MAX_LLM_PAIRS", "50"))
+        pairs_to_analyze = candidate_pairs[:max_pairs]
+        
+        for i, (doc1_id, doc2_id) in enumerate(pairs_to_analyze):
+            if (i + 1) % 10 == 0:
+                print(f"    Analyzed {i + 1}/{len(pairs_to_analyze)} pairs...")
+            
+            doc1 = unid_profiles.get(doc1_id)
+            doc2 = unid_profiles.get(doc2_id)
+            
+            if not doc1 or not doc2:
+                continue
+            
+            result = llm.analyze_match(
+                doc1.pii_values, doc2.pii_values,
+                doc1_id, doc2_id
+            )
+            
+            if result.is_same_person and result.confidence >= 0.7:
+                matched_pairs.append((doc1_id, doc2_id, result))
+        
+        print(f"  LLM confirmed {len(matched_pairs)} matches")
+        
+        if not matched_pairs:
+            return profiles, [], 0, 0, {}
+        
+        # Build groups from matched pairs using Union-Find
+        groups = self._build_groups_from_pairs(matched_pairs, unid_profiles)
+        
+        # Merge profiles within each group
+        merged_profiles, document_groups, enrichments = self._merge_llm_groups(
+            profiles, groups, matched_pairs
+        )
+        
+        linked_count = len([g for g in groups if len(g) > 1])
+        docs_merged = sum(len(g) for g in groups if len(g) > 1)
+        
+        return merged_profiles, document_groups, linked_count, docs_merged, enrichments
+    
+    def _find_candidate_pairs(
+        self, 
+        profiles: Dict[str, Profile]
+    ) -> List[Tuple[str, str]]:
+        """Find candidate pairs based on weak identifier overlap."""
+        # Build inverted index: pii_value -> [profile_ids]
+        value_index = defaultdict(set)
+        
+        for profile_id, profile in profiles.items():
+            for pii_type, value in profile.pii_values.items():
+                if value:
+                    # Normalize value
+                    norm_value = f"{pii_type.lower()}:{value.lower().strip()}"
+                    value_index[norm_value].add(profile_id)
+        
+        # Find pairs that share at least 2 weak identifiers
+        pair_overlap = defaultdict(int)
+        
+        for profiles_with_value in value_index.values():
+            if len(profiles_with_value) > 1 and len(profiles_with_value) < 50:  # Avoid too common values
+                profiles_list = list(profiles_with_value)
+                for i in range(len(profiles_list)):
+                    for j in range(i + 1, len(profiles_list)):
+                        pair = tuple(sorted([profiles_list[i], profiles_list[j]]))
+                        pair_overlap[pair] += 1
+        
+        # Return pairs with at least 2 overlapping values, sorted by overlap count
+        candidates = [(p[0], p[1]) for p, count in pair_overlap.items() if count >= 2]
+        candidates.sort(key=lambda p: pair_overlap[tuple(sorted(p))], reverse=True)
+        
+        return candidates
+    
+    def _build_groups_from_pairs(
+        self,
+        matched_pairs: List[Tuple[str, str, any]],
+        profiles: Dict[str, Profile]
+    ) -> List[Set[str]]:
+        """Build connected groups from matched pairs using Union-Find."""
+        profile_ids = list(profiles.keys())
+        id_to_idx = {pid: i for i, pid in enumerate(profile_ids)}
+        n = len(profile_ids)
+        parent = list(range(n))
+        
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+        
+        def union(x, y):
+            px, py = find(x), find(y)
+            if px != py:
+                parent[px] = py
+        
+        for doc1_id, doc2_id, _ in matched_pairs:
+            if doc1_id in id_to_idx and doc2_id in id_to_idx:
+                union(id_to_idx[doc1_id], id_to_idx[doc2_id])
+        
+        # Group by root
+        groups = defaultdict(set)
+        for pid in profile_ids:
+            groups[find(id_to_idx[pid])].add(pid)
+        
+        return [g for g in groups.values() if len(g) > 1]
+    
+    def _merge_llm_groups(
+        self,
+        all_profiles: List[Profile],
+        groups: List[Set[str]],
+        matched_pairs: List[Tuple[str, str, any]]
+    ) -> Tuple[List[Profile], List[DocumentGroup], Dict[str, Dict[str, str]]]:
+        """Merge profiles in LLM-identified groups."""
+        profile_map = {p.profile_id: p for p in all_profiles}
+        merged_ids = set()
+        document_groups = []
+        enrichments = {}
+        
+        for group in groups:
+            group_list = list(group)
+            canonical_id = group_list[0]
+            canonical = profile_map.get(canonical_id)
+            
+            if not canonical:
+                continue
+            
+            # Merge all profiles in group
+            combined_pii = canonical.pii_values.copy()
+            all_doc_ids = list(canonical.linked_document_ids or [canonical.document_id])
+            all_pii_types = set(canonical.piis_detected)
+            
+            for other_id in group_list[1:]:
+                other = profile_map.get(other_id)
+                if other:
+                    merged_ids.add(other_id)
+                    all_doc_ids.extend(other.linked_document_ids or [other.document_id])
+                    all_pii_types.update(other.piis_detected)
+                    for pii_type, value in other.pii_values.items():
+                        if pii_type not in combined_pii and value:
+                            combined_pii[pii_type] = value
+            
+            # Update canonical profile
+            canonical.pii_values = combined_pii
+            canonical.linked_document_ids = list(set(all_doc_ids))
+            canonical.piis_detected = list(all_pii_types)
+            
+            # Track enrichments
+            original_piis = set(profile_map[canonical_id].pii_values.keys())
+            new_piis = {k: v for k, v in combined_pii.items() if k not in original_piis}
+            if new_piis:
+                enrichments[canonical_id] = new_piis
+            
+            # Create DocumentGroup
+            doc_group = DocumentGroup(
+                group_id=f"llm_group_{canonical_id}",
+                document_ids=all_doc_ids,
+                grouping_reason="LLM contextual analysis",
+                combined_pii_values=combined_pii,
+                status=IdentificationStatus.LIKELY,
+                identified_profile=canonical_id
+            )
+            document_groups.append(doc_group)
+        
+        # Filter out merged profiles
+        final_profiles = [p for p in all_profiles if p.profile_id not in merged_ids]
+        
+        return final_profiles, document_groups, enrichments
+    
+    def _heuristic_matching(
         self, 
         document_nodes: Dict[str, DocumentNode],
         profiles: List[Profile]
     ) -> Dict[str, DocumentNode]:
         """
-        Phase 2: Match unidentified documents to profiles using weak identifiers.
+        Fallback heuristic matching when LLM is disabled.
         
         Uses a browser-fingerprinting approach where combinations of innocuous
         data points can uniquely identify a person.

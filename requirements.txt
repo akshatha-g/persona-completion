@@ -3,3 +3,6 @@ pydantic>=2.0.0
 
 # Visualization
 rich>=13.0.0
+
+# LLM for contextual linking
+openai>=1.0.0
