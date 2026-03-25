@@ -1,0 +1,339 @@
+{
+  "sources": {
+    "panorama": {
+      "count": 756,
+      "description": "Clear persona matches with full PII detection"
+    }
+  },
+  "total_documents": 1909,
+  "success_cases": 756,
+  "failure_cases": {
+    "non_identifiable": 325,
+    "dynamic_characteristics": 728,
+    "ambiguous": 100,
+    "total": 1153
+  },
+  "non_identifiable_analysis": {
+    "avg_piis_per_doc": 1.0,
+    "pii_type_distribution": {
+      "Job Title": 159,
+      "Nationality": 138,
+      "Marital Status": 28
+    },
+    "samples": [
+      {
+        "id": "doc_62141",
+        "pii_count": 1,
+        "pii_types": [
+          "Job Title"
+        ],
+        "text_preview": "@tiffany_47 : Struggling with finances but my passion\u2019s richer than gold. Kitchen therapy, anyone? #KeepCooking #Inspiration..."
+      },
+      {
+        "id": "doc_180244",
+        "pii_count": 1,
+        "pii_types": [
+          "Nationality"
+        ],
+        "text_preview": "@graya : Nothing beats a great day when both work and home are in sync. #LifeGoals #AustralianLiving..."
+      },
+      {
+        "id": "doc_9677",
+        "pii_count": 1,
+        "pii_types": [
+          "Nationality"
+        ],
+        "text_preview": "Username: Joe | Location: Kristin Ville | Date: 2023-07-15\nReally enjoyed my dinner at The Scholar\u2019s Caf\u00e9 last night. As a teacher juggling long schoo..."
+      },
+      {
+        "id": "doc_107305",
+        "pii_count": 1,
+        "pii_types": [
+          "Job Title"
+        ],
+        "text_preview": "@joseph_webb : Loving the buzz of solving complex problems with a dash of empathy \u2013 that\u2019s what makes it real. #ConsultantLife..."
+      },
+      {
+        "id": "doc_272397",
+        "pii_count": 1,
+        "pii_types": [
+          "Nationality"
+        ],
+        "text_preview": "@jennifer.neal : Happy birthday to me... well, another year older and a whole lot wiser! \ud83c\udf89 #July22 #FilipinoStrong..."
+      },
+      {
+        "id": "doc_71361",
+        "pii_count": 1,
+        "pii_types": [
+          "Nationality"
+        ],
+        "text_preview": "Update: Just posted a new snap on @hamiltont \u2013 thoughts on juggling work and family life? Check it out and drop a comment! #RealTalk #Canadian..."
+      },
+      {
+        "id": "doc_140240",
+        "pii_count": 1,
+        "pii_types": [
+          "Nationality"
+        ],
+        "text_preview": "@jordon.storey : Nothing like a clear Irish day to enjoy a flight over Kealan Ville. Grateful for my crew and family backing me up always! \ud83d\ude4c #SkyHigh ..."
+      },
+      {
+        "id": "doc_84581",
+        "pii_count": 1,
+        "pii_types": [
+          "Marital Status"
+        ],
+        "text_preview": "@asavage : Big shoutout to my amazing wife, Lynda \u2013 life\u2019s a beautiful journey when you\u2019ve got family by your side. #MarriedLife #Blessed \ud83d\udc95..."
+      },
+      {
+        "id": "doc_170726",
+        "pii_count": 1,
+        "pii_types": [
+          "Nationality"
+        ],
+        "text_preview": "@macinerney937 : Life update: cleaning up life\u2019s mess literally & figuratively at O\u2019Boyle PLC. Every sweep counts! #SimpleJoys #IrishLife..."
+      },
+      {
+        "id": "doc_59263",
+        "pii_count": 1,
+        "pii_types": [
+          "Job Title"
+        ],
+        "text_preview": "Hey Insta fam (@cabrera581), what's your go-to motivation song for those long work shifts? Let me know! #CashierLife..."
+      }
+    ]
+  },
+  "ambiguous_analysis": {
+    "avg_matching_personas": 15.45,
+    "samples": [
+      {
+        "document_id": "doc_102779",
+        "detected_piis": {
+          "Age": "62",
+          "Marital Status": "Single",
+          "Job Title": "Biologist"
+        },
+        "matching_personas_count": 3,
+        "matching_persona_names": [
+          "Angela Romero",
+          "Tom Wright",
+          "Nicholas Davis"
+        ],
+        "text_preview": "@tom_wright : Single & thriving \u2013 my experiments and nature walks keep me on my toes. #LifeAt62 #Biologist..."
+      },
+      {
+        "document_id": "doc_98906",
+        "detected_piis": {
+          "First Name": "Gunbir",
+          "Nationality": "Indian",
+          "Job Title": "Chef"
+        },
+        "matching_personas_count": 2,
+        "matching_persona_names": [
+          "Gunbir Chandran",
+          "Gunbir Dey"
+        ],
+        "text_preview": "Gunbir : Just whipped up a new fusion dish that marries traditional Indian spices with a modern twist! Yum \ud83d\ude0b #ChefLife #FusionMagic..."
+      },
+      {
+        "document_id": "doc_74852",
+        "detected_piis": {
+          "First Name": "Gunbir",
+          "Nationality": "Indian",
+          "Job Title": "Chef"
+        },
+        "matching_personas_count": 2,
+        "matching_persona_names": [
+          "Gunbir Chandran",
+          "Gunbir Dey"
+        ],
+        "text_preview": "Username: Rajiv | Location: Pudukkottai  \nDate of Visit: 2023-07-20  \nVisited for a dinner that promised a modern take on Indian classics. The present..."
+      },
+      {
+        "document_id": "doc_162676",
+        "detected_piis": {
+          "Age": "29",
+          "Nationality": "British"
+        },
+        "matching_personas_count": 15,
+        "matching_persona_names": [
+          "Zoe Evans",
+          "Sara Ellis",
+          "Marion Smith"
+        ],
+        "text_preview": "@jjackson : As a 29-year-old British guy grinding through operations challenges, every day is an opportunity. Keep pushing! \ud83c\uddec\ud83c\udde7 #Hustle..."
+      },
+      {
+        "document_id": "doc_23253",
+        "detected_piis": {
+          "First Name": "Kimberly",
+          "Age": "69"
+        },
+        "matching_personas_count": 2,
+        "matching_persona_names": [
+          "Kimberly Williams",
+          "Kimberly Hayes"
+        ],
+        "text_preview": "Username: Kimberly \u2022 Location: East David \u2022 Date: 2023-09-05\nRating: \u2605\u2605\u2605\u2606\u2606\nVisited the Riverside Eatery with my spouse Steven recently. The food quali..."
+      },
+      {
+        "document_id": "doc_106759",
+        "detected_piis": {
+          "First Name": "Amanda",
+          "Age": "73"
+        },
+        "matching_personas_count": 3,
+        "matching_persona_names": [
+          "Amanda Brown",
+          "Amanda Fisher",
+          "Amanda Johnson"
+        ],
+        "text_preview": "Name: Amanda  \nLocation: New April, ME  \nDate: 2023-01-30  \nDining at this eatery was a pleasant reminder of service excellence. Though I'm 73 and set..."
+      },
+      {
+        "document_id": "doc_185100",
+        "detected_piis": {
+          "Nationality": "Indian",
+          "Birth City": "Phusro"
+        },
+        "matching_personas_count": 6,
+        "matching_persona_names": [
+          "Bimala Bava",
+          "Vasudha Bassi",
+          "Vidhi Mallick"
+        ],
+        "text_preview": "@routj : Flashback to my days in Phusro \u2013 when dreams began! Grateful for every challenge. #TBT #IndianPride..."
+      },
+      {
+        "document_id": "doc_93071",
+        "detected_piis": {
+          "First Name": "Fergus",
+          "Nationality": "Irish"
+        },
+        "matching_personas_count": 4,
+        "matching_persona_names": [
+          "Fergus McKevitt",
+          "Fergus Rice",
+          "Fergus Kinner"
+        ],
+        "text_preview": "Username: Fergus  \nLocation: Demi-Leigh Ville  \nDate: 2023-11-05  \nVisited: Carey\u2019s Corner Bistro  \nRating: \u2605\u2605\u2605\u2605\u2605  \nReview: Had an amazing dinner at C..."
+      },
+      {
+        "document_id": "doc_202028",
+        "detected_piis": {
+          "First Name": "Rachel",
+          "Age": "80"
+        },
+        "matching_personas_count": 2,
+        "matching_persona_names": [
+          "Rachel McCallum",
+          "Rachel Harris"
+        ],
+        "text_preview": "Username: Rachel  \nLocation: Canada  \nDate: 2023-05-05  \nRating: \u2605\u2605\u2605\u2606\u2606  \nStopped by Neon Nibbles Diner on a rainy day in Canada. The neon signs remind..."
+      },
+      {
+        "document_id": "doc_238406",
+        "detected_piis": {
+          "First Name": "Marian",
+          "Finance Status": "High"
+        },
+        "matching_personas_count": 4,
+        "matching_persona_names": [
+          "Marian King",
+          "Marian Wood",
+          "Marian Harris"
+        ],
+        "text_preview": "Name: Marian \u2022 Location: Patriciabury \u2022 Date: 2023-03-30\nStopped in at The Midnight Snack Shack between shifts. The food was fast, fresh, and exactly ..."
+      }
+    ]
+  },
+  "dynamic_analysis": {
+    "avg_piis_per_doc": 1.0,
+    "pii_type_distribution": {
+      "Employer": 702,
+      "Phone Number": 26
+    },
+    "samples": [
+      {
+        "id": "doc_191995",
+        "pii_count": 1,
+        "pii_types": [
+          "Employer"
+        ],
+        "text_preview": "@wallacem : Big shoutout to my crew at Bruce-Phillips and to the supportive community! Stay safe out there, mates \ud83d\ude4c\ud83c\udf1f #TeamWork..."
+      },
+      {
+        "id": "doc_263450",
+        "pii_count": 1,
+        "pii_types": [
+          "Employer"
+        ],
+        "text_preview": "@jlyons : I\u2019ve been trying to sync my case management software with the Flores-Lee system and hit some snags. Has anyone experienced issues with the i..."
+      },
+      {
+        "id": "doc_240765",
+        "pii_count": 1,
+        "pii_types": [
+          "Employer"
+        ],
+        "text_preview": "@david414 : Had a hectic day at Schaefer, Fuentes and Andrews but feeling blessed nonetheless! #ExecutiveLife #Grateful \ud83d\ude4c..."
+      },
+      {
+        "id": "doc_243925",
+        "pii_count": 1,
+        "pii_types": [
+          "Employer"
+        ],
+        "text_preview": "@stephens_42 : Quick question: How do you handle software maintenance updates on extremely busy nurse shifts? I got caught in the middle of one at Bur..."
+      },
+      {
+        "id": "doc_180984",
+        "pii_count": 1,
+        "pii_types": [
+          "Employer"
+        ],
+        "text_preview": "@skeville : When work feels like home \u2013 proud of every sale and smile shared at Ltd Store. Cheers to the long journey! \ud83d\udecd\ufe0f\ud83c\udf40..."
+      },
+      {
+        "id": "doc_193538",
+        "pii_count": 1,
+        "pii_types": [
+          "Employer"
+        ],
+        "text_preview": "Just wrapped up another day at Balakrishnan, Ramachandran and Dhawan! Engineering sparks my soul \ud83d\udd25\ud83d\udc77\u200d\u2642\ufe0f #EngineerLife #Inspiration @akant..."
+      },
+      {
+        "id": "doc_224479",
+        "pii_count": 1,
+        "pii_types": [
+          "Employer"
+        ],
+        "text_preview": "@harris497 : Nothing like a successful audit day at Hughes-Chapman to remind you that detail matters. Here\u2019s to the unsung heroes of finance! #AuditWi..."
+      },
+      {
+        "id": "doc_227049",
+        "pii_count": 1,
+        "pii_types": [
+          "Employer"
+        ],
+        "text_preview": "@normane : Massive shoutout to my team at Hughes LLC. Every day is a win in the healthcare battle! #TeamWork..."
+      },
+      {
+        "id": "doc_182197",
+        "pii_count": 1,
+        "pii_types": [
+          "Phone Number"
+        ],
+        "text_preview": "Seller: Jen  \nLocation for Pickup: West Kevin, AB  \nContact: 779 563 9234  \nItem: Second-hand smartphone in great condition. Excellent for managing so..."
+      },
+      {
+        "id": "doc_197374",
+        "pii_count": 1,
+        "pii_types": [
+          "Employer"
+        ],
+        "text_preview": "@carter_16 : I\u2019ve been troubleshooting a slow-loading admin portal at Brown PLC after the recent software update. The issue persists with the error me..."
+      }
+    ]
+  }
+}

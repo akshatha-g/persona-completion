@@ -1,0 +1,39 @@
+{
+  "categories": {
+    "trait_completeness": {
+      "label": "Trait Completeness",
+      "description": "Identifiability score based on trait sets (max % across matching combinations)",
+      "scoring": "trait_sets"
+    },
+    "personal": {
+      "label": "Personal",
+      "description": "Enrichment data about the person",
+      "fields": {
+        "gender": { "label": "Gender", "data_type": "string" },
+        "age": { "label": "Age", "data_type": "number" },
+        "birth_date": { "label": "Birth Date", "data_type": "date" },
+        "birth_city": { "label": "Birth City", "data_type": "string" },
+        "nationality": { "label": "Nationality", "data_type": "string" },
+        "address": { "label": "Address", "data_type": "string" },
+        "marital_status": { "label": "Marital Status", "data_type": "string" },
+        "spouse_name": { "label": "Spouse Name", "data_type": "string" },
+        "children_count": { "label": "Children Count", "data_type": "number" },
+        "fathers_name": { "label": "Father's Name", "data_type": "string" },
+        "mothers_name": { "label": "Mother's Name", "data_type": "string" },
+        "employer": { "label": "Employer", "data_type": "string" },
+        "job_title": { "label": "Job Title", "data_type": "string" },
+        "education_info": { "label": "Education", "data_type": "string" },
+        "annual_salary": { "label": "Annual Salary", "data_type": "currency" },
+        "finance_status": { "label": "Finance Status", "data_type": "string" },
+        "net_worth": { "label": "Net Worth", "data_type": "currency" },
+        "credit_score": { "label": "Credit Score", "data_type": "number" },
+        "blood_type": { "label": "Blood Type", "data_type": "string" },
+        "allergies": { "label": "Allergies", "data_type": "string" },
+        "disability": { "label": "Disability", "data_type": "string" },
+        "emergency_contact_name": { "label": "Emergency Contact", "data_type": "string" },
+        "emergency_contact_phone": { "label": "Emergency Phone", "data_type": "phone" },
+        "social_media_handles": { "label": "Social Media", "data_type": "object" }
+      }
+    }
+  }
+}
