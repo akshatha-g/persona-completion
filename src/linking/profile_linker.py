@@ -24,7 +24,11 @@ class ProfileLinker:
         # Normalize strong ID keys to lowercase for matching
         self.strong_ids = {k.lower().replace("'s", "").replace(" ", "_"): v 
                           for k, v in STRONG_IDENTIFIERS.items()}
-        self.use_llm = use_llm and os.getenv("OPENAI_API_KEY") is not None
+        # Enable LLM if API key is set OR mock mode is enabled
+        self.use_llm = use_llm and (
+            os.getenv("OPENAI_API_KEY") is not None or 
+            os.getenv("LLM_MOCK", "").lower() == "true"
+        )
         self.llm_model = llm_model
         self._llm_client = None
         # Also add common aliases
