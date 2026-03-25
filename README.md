@@ -24,7 +24,7 @@ Cross-document profile linking to determine how uniquely identifiable individual
 - Detects contradictions (different nationality = no match)
 
 ### 3. Visualization
-- Profile completeness dashboard (placeholder)
+- Profile completeness dashboard 
 
 ## Results (Synthetic Data)
 
