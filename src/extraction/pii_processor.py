@@ -27,7 +27,7 @@ class PIIProcessor:
         Returns:
             List of Profile objects
         """
-        all_profiles: Dict[str, Profile] = {}  # profile_id -> Profile
+        all_profiles: Dict[str, Profile] = {}  # document_id -> Profile
         
         for filename in os.listdir(input_dir):
             if filename.endswith(".json"):
@@ -40,53 +40,49 @@ class PIIProcessor:
                 
                 for doc in docs:
                     doc_profiles = self._process_document(doc)
-                    # Merge profiles by profile_id
+                    # Each document is its own profile (no merging by persona_id)
                     for profile in doc_profiles:
-                        if profile.profile_id in all_profiles:
-                            self._merge_profile(all_profiles[profile.profile_id], profile)
-                        else:
-                            all_profiles[profile.profile_id] = profile
+                        all_profiles[profile.document_id] = profile
         
-        # Recalculate completion after merging
-        for profile in all_profiles.values():
-            profile.profile_completion_pct = self._calculate_completion(profile.piis_detected)
-        
+        # Don't merge by profile_id - each document is independent
+        # profile_id in input is ground truth for evaluation only
         return list(all_profiles.values())
     
     def _process_document(self, doc_data: dict) -> List[Profile]:
-        """Process a single document and extract profiles grouped by profile_id."""
+        """Process a single document - each document is its own profile initially."""
         document_id = doc_data.get("id", doc_data.get("document_id", "unknown"))
         pii_spans = doc_data.get("pii_spans", [])
         
-        # Group PIIs by profile_id
-        profiles_data: Dict[str, Dict] = defaultdict(lambda: {"piis": set(), "values": {}})
+        # Ground truth profile_id for evaluation (not used for linking)
+        ground_truth_id = doc_data.get("persona_id", doc_data.get("profile_id"))
+        
+        # Collect all PIIs from this document (ignore profile_id in spans)
+        piis: Set[str] = set()
+        pii_values: Dict[str, str] = {}
         
         for span in pii_spans:
-            profile_id = span.get("profile_id", f"profile_{document_id}")
             pii_type = span.get("pii_type")
             pii_value = span.get("value")
             
             if pii_type:
-                profiles_data[profile_id]["piis"].add(pii_type)
-                profiles_data[profile_id]["values"][pii_type] = pii_value
+                piis.add(pii_type)
+                pii_values[pii_type] = pii_value
         
-        # Create Profile objects
-        profiles = []
-        for profile_id, data in profiles_data.items():
-            piis_detected = list(data["piis"])
-            completion_pct = self._calculate_completion(piis_detected)
-            
-            profile = Profile(
-                document_id=document_id,
-                profile_id=profile_id,
-                piis_detected=piis_detected,
-                profile_completion_pct=completion_pct,
-                pii_values=data["values"],
-                linked_document_ids=[document_id]
-            )
-            profiles.append(profile)
+        # Each document starts as its own profile
+        piis_detected = list(piis)
+        completion_pct = self._calculate_completion(piis_detected)
         
-        return profiles
+        profile = Profile(
+            document_id=document_id,
+            profile_id=document_id,  # Use doc_id as initial profile_id
+            piis_detected=piis_detected,
+            profile_completion_pct=completion_pct,
+            pii_values=pii_values,
+            linked_document_ids=[document_id],
+            ground_truth_id=ground_truth_id  # For evaluation
+        )
+        
+        return [profile]
     
     def _merge_profile(self, existing: Profile, new: Profile):
         """Merge new profile data into existing profile."""
@@ -135,8 +131,11 @@ class PIIProcessor:
             {
                 "document_id": p.document_id,
                 "profile_id": p.profile_id,
+                "ground_truth_id": p.ground_truth_id,  # For evaluation
                 "piis_detected": p.piis_detected,
-                "profile_completion_pct": p.profile_completion_pct
+                "pii_values": p.pii_values,
+                "profile_completion_pct": p.profile_completion_pct,
+                "linked_document_ids": p.linked_document_ids
             }
             for p in profiles
         ]

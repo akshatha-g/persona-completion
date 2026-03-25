@@ -33,3 +33,4 @@ class Profile:
     profile_completion_pct: float      # 0-100 percentage
     pii_values: dict = field(default_factory=dict)  # PII type -> value mapping
     linked_document_ids: List[str] = field(default_factory=list)
+    ground_truth_id: Optional[str] = None  # For evaluation only (persona_id from input)

@@ -219,18 +219,31 @@ class ProfileLinker:
         nodes = {}
         
         for profile in profiles:
+            # Check if this profile was identified via strong ID (has strong ID values)
+            has_strong_id = self._has_strong_identifier(profile.pii_values)
+            
             for doc_id in profile.linked_document_ids or [profile.document_id]:
                 node = DocumentNode(
                     document_id=doc_id,
                     pii_values=profile.pii_values.copy(),
-                    status=IdentificationStatus.IDENTIFIED,
-                    identified_profile=profile.profile_id,
-                    identified_via="strong_id",
+                    status=IdentificationStatus.IDENTIFIED if has_strong_id else IdentificationStatus.UNKNOWN,
+                    identified_profile=profile.profile_id if has_strong_id else None,
+                    identified_via="strong_id" if has_strong_id else None,
                     grouped_with=[d for d in (profile.linked_document_ids or []) if d != doc_id]
                 )
                 nodes[doc_id] = node
         
         return nodes
+    
+    def _has_strong_identifier(self, pii_values: Dict[str, str]) -> bool:
+        """Check if profile has any strong identifier values."""
+        for pii_type in pii_values.keys():
+            pii_key = pii_type.lower().replace("'s", "").replace(" ", "_")
+            if (pii_key in self.strong_ids or 
+                pii_key in self.strong_id_aliases or
+                self.strong_id_aliases.get(pii_key) in self.strong_ids):
+                return True
+        return False
     
     def _contextual_matching(
         self, 
