@@ -5,7 +5,8 @@ Step 1: Process documents with PII span data and generate profile database.
 import json
 import os
 from typing import List, Dict, Set
-from .models import Document, Profile, PIISpan
+from collections import defaultdict
+from .models import Profile
 from .persona_config import PERSONA_TRAIT_SETS, PII_TYPE_ALIASES
 
 
@@ -26,7 +27,7 @@ class PIIProcessor:
         Returns:
             List of Profile objects
         """
-        profiles = []
+        all_profiles: Dict[str, Profile] = {}  # profile_id -> Profile
         
         for filename in os.listdir(input_dir):
             if filename.endswith(".json"):
@@ -34,39 +35,65 @@ class PIIProcessor:
                 with open(filepath, "r") as f:
                     data = json.load(f)
                 
-                doc_profiles = self._process_document(data)
-                profiles.extend(doc_profiles)
+                # Handle both single doc and array of docs
+                docs = data if isinstance(data, list) else [data]
+                
+                for doc in docs:
+                    doc_profiles = self._process_document(doc)
+                    # Merge profiles by profile_id
+                    for profile in doc_profiles:
+                        if profile.profile_id in all_profiles:
+                            self._merge_profile(all_profiles[profile.profile_id], profile)
+                        else:
+                            all_profiles[profile.profile_id] = profile
+        
+        # Recalculate completion after merging
+        for profile in all_profiles.values():
+            profile.profile_completion_pct = self._calculate_completion(profile.piis_detected)
+        
+        return list(all_profiles.values())
+    
+    def _process_document(self, doc_data: dict) -> List[Profile]:
+        """Process a single document and extract profiles grouped by profile_id."""
+        document_id = doc_data.get("id", doc_data.get("document_id", "unknown"))
+        pii_spans = doc_data.get("pii_spans", [])
+        
+        # Group PIIs by profile_id
+        profiles_data: Dict[str, Dict] = defaultdict(lambda: {"piis": set(), "values": {}})
+        
+        for span in pii_spans:
+            profile_id = span.get("profile_id", f"profile_{document_id}")
+            pii_type = span.get("pii_type")
+            pii_value = span.get("value")
+            
+            if pii_type:
+                profiles_data[profile_id]["piis"].add(pii_type)
+                profiles_data[profile_id]["values"][pii_type] = pii_value
+        
+        # Create Profile objects
+        profiles = []
+        for profile_id, data in profiles_data.items():
+            piis_detected = list(data["piis"])
+            completion_pct = self._calculate_completion(piis_detected)
+            
+            profile = Profile(
+                document_id=document_id,
+                profile_id=profile_id,
+                piis_detected=piis_detected,
+                profile_completion_pct=completion_pct,
+                pii_values=data["values"],
+                linked_document_ids=[document_id]
+            )
+            profiles.append(profile)
         
         return profiles
     
-    def _process_document(self, doc_data: dict) -> List[Profile]:
-        """Process a single document and extract profiles."""
-        document_id = doc_data.get("document_id", "unknown")
-        pii_spans = doc_data.get("pii_spans", [])
-        
-        # Group PIIs by profile (simplified: one profile per document for now)
-        pii_types_found = set()
-        pii_values = {}
-        
-        for span in pii_spans:
-            pii_type = span.get("pii_type")
-            pii_value = span.get("value")
-            if pii_type:
-                pii_types_found.add(pii_type)
-                pii_values[pii_type] = pii_value
-        
-        # Calculate profile completion percentage
-        completion_pct = self._calculate_completion(list(pii_types_found))
-        
-        profile = Profile(
-            document_id=document_id,
-            profile_id=f"profile_{document_id}",
-            piis_detected=list(pii_types_found),
-            profile_completion_pct=completion_pct,
-            pii_values=pii_values
-        )
-        
-        return [profile]
+    def _merge_profile(self, existing: Profile, new: Profile):
+        """Merge new profile data into existing profile."""
+        existing.piis_detected = list(set(existing.piis_detected) | set(new.piis_detected))
+        existing.pii_values.update(new.pii_values)
+        if new.document_id not in existing.linked_document_ids:
+            existing.linked_document_ids.append(new.document_id)
     
     def _calculate_completion(self, detected_piis: List[str]) -> float:
         """
